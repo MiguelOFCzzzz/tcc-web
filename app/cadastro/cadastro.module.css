@@ -1,0 +1,324 @@
+.page {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  /* ── LEFT PANEL ── */
+  .panel {
+    width: 440px;
+    flex-shrink: 0;
+    background: var(--verde);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .panelInner {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 56px 48px;
+  }
+  
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .brandName {
+    font-family: 'Poppins', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  
+  .brandName em {
+    font-style: normal;
+    color: var(--laranja);
+  }
+  
+  .brandTagline {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+  
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .stepsTitle {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 4px;
+  }
+  
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .stepNum {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--laranja);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .step strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+  
+  .step p {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.4;
+  }
+  
+  .panelDeco {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  
+  .decoCircle1 {
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    border: 55px solid rgba(255, 255, 255, 0.04);
+    bottom: -140px;
+    right: -140px;
+  }
+  
+  .decoCircle2 {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 35px solid rgba(197, 109, 71, 0.1);
+    top: -60px;
+    right: 40px;
+  }
+  
+  /* ── RIGHT / FORM ── */
+  .formSide {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--creme);
+    padding: 40px 24px;
+  }
+  
+  .formCard {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .formHeader h1 {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--verde);
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  
+  .formHeader p {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  
+  /* ── FORM ELEMENTS ── */
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+  }
+  
+  .field input,
+  .field select {
+    width: 100%;
+    height: 46px;
+    background: #fff;
+    border: 1.5px solid var(--creme-mid);
+    border-radius: var(--radius-sm);
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--laranja);
+  }
+  
+  .field input::placeholder {
+    color: #bbb;
+  }
+  
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7260' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+  
+  .field select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .locationRow {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 12px;
+  }
+  
+  .fieldFlex {
+    flex: 1;
+  }
+  
+  .passwordWrap {
+    position: relative;
+  }
+  
+  .passwordWrap input {
+    padding-right: 44px;
+  }
+  
+  .eyeBtn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+  
+  .submitBtn {
+    width: 100%;
+    height: 48px;
+    background: var(--laranja);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+  
+  .submitBtn:hover:not(:disabled) {
+    background: var(--laranja-dark);
+  }
+  
+  .submitBtn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  
+  .submitBtn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  
+  .errorBanner {
+    background: #fde8e8;
+    border: 1px solid #f5c0c0;
+    color: #c0392b;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .switch {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  
+  .switch a {
+    color: var(--laranja);
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  
+  .switch a:hover {
+    text-decoration: underline;
+  }
+  
+  @media (max-width: 768px) {
+    .page {
+      flex-direction: column;
+    }
+  
+    .panel {
+      width: 100%;
+      min-height: 200px;
+    }
+  
+    .panelInner {
+      padding: 32px 24px;
+      gap: 16px;
+    }
+  
+    .brandName {
+      font-size: 30px;
+    }
+  
+    .steps {
+      display: none;
+    }
+  
+    .formSide {
+      padding: 32px 20px;
+    }
+  }
