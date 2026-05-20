@@ -98,11 +98,10 @@ export default function CadastroPage() {
 
       // Injeta o cookie para o middleware não te barrar ao ir para a dashboard
       document.cookie = "auth_token=token_falso_cadastro; path=/; max-age=86400;";
-
       localStorage.setItem('usuarioLogado', 'true')
       localStorage.setItem('userEmail', email)
       localStorage.setItem('userCidade', cidadeSelecionada)
-      router.push('/dashboard')
+      router.push('/login')
     } catch {
       setError('Erro de conexão. Verifique se o servidor está rodando.')
     } finally {
@@ -207,7 +206,7 @@ export default function CadastroPage() {
                   autoComplete="new-password"
                 />
                 <button type="button" className={styles.eyeBtn} onClick={() => setShowSenha(v => !v)}>
-                  {showSenha ? '🙈' : '👁️'}
+                  {showSenha ? '🔑' : '👁️'}
                 </button>
               </div>
             </div>
@@ -224,7 +223,7 @@ export default function CadastroPage() {
                   autoComplete="new-password"
                 />
                 <button type="button" className={styles.eyeBtn} onClick={() => setShowSenha2(v => !v)}>
-                  {showSenha2 ? '🙈' : '👁️'}
+                  {showSenha2 ? '🔑' : '👁️'}
                 </button>
               </div>
             </div>
