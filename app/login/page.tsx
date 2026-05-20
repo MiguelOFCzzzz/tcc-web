@@ -24,10 +24,10 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:3000/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: senha }),
+        body: JSON.stringify({ email, senha }),
       })
 
       const data = await res.json()
@@ -39,8 +39,8 @@ export default function LoginPage() {
 
       localStorage.setItem('usuarioLogado', 'true')
       localStorage.setItem('userEmail', email)
-      // Cookie para o middleware conseguir proteger as rotas
-      document.cookie = 'usuarioLogado=true; path=/; max-age=86400'
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userCidade', data.user?.cidade || '')
       router.push('/dashboard')
     } catch {
       setError('Erro de conexão. Verifique se o servidor está rodando.')
@@ -131,7 +131,7 @@ export default function LoginPage() {
                   onClick={() => setShowSenha(v => !v)}
                   aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  {showSenha ? '🙈' : '👁️'}
+                  {showSenha ? '🔑' : '👁️'}
                 </button>
               </div>
             </div>

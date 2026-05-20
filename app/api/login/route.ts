@@ -1,57 +1,57 @@
 import { NextResponse } from 'next/server';
-import { pool } from '@/app/lib/db'; // Importa a conexão que criamos no Passo 2
+import { pool } from '@/app/lib/db';
 import { RowDataPacket } from 'mysql2';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_super_secreta';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, senha } = body;
 
-    if (!email || !password) {
-      return NextResponse.json({ message: 'E-mail e senha são obrigatórios' }, { status: 400 });
+    if (!email || !senha) {
+      return NextResponse.json({ message: 'Email e senha são obrigatórios' }, { status: 400 });
     }
 
-    // 1. Executa a query SQL puro para buscar o usuário
-    // O uso de '?' previne ataques de SQL Injection
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT * FROM users WHERE email = ? LIMIT 1',
-      [email]
+      'SELECT * FROM users WHERE email = ? LIMIT 1', [email]
     );
 
-    // 2. Verifica se encontrou algum registro
     if (rows.length === 0) {
-      return NextResponse.json({ message: 'E-mail ou senha incorretos' }, { status: 401 });
+      return NextResponse.json({ message: 'Usuário não encontrado' }, { status: 401 });
     }
 
     const user = rows[0];
+    const senhaValida = await bcrypt.compare(senha, user.senha);
 
-    // 3. Verifica a senha
-    // IMPORTANTE: Se o Ionic salva a senha criptografada (ex: Bcrypt), 
-    // você precisará usar a biblioteca 'bcrypt' para comparar aqui em vez de '==='
-    if (user.senha !== password) {
-      return NextResponse.json({ message: 'E-mail ou senha incorretos' }, { status: 401 });
+    if (!senhaValida) {
+      return NextResponse.json({ message: 'Senha incorreta' }, { status: 401 });
     }
 
-    // 4. Login bem-sucedido: Gera a resposta e injeta o cookie para o middleware
-    const response = NextResponse.json(
-      { 
-        message: 'Login bem-sucedido', 
-        user: { email: user.email, uf: user.uf, city: user.cidade } 
-      },
-      { status: 200 }
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '1h' }
     );
 
-    // Configura o cookie exatamente com o nome que seu middleware espera (ex: 'auth_token')
-    response.cookies.set('auth_token', 'token_gerado_ou_id_' + user.id, {
+    const response = NextResponse.json({
+      message: 'Login realizado com sucesso!',
+      token,
+      user: { email: user.email, uf: user.uf, cidade: user.cidade }
+    }, { status: 200 });
+
+    response.cookies.set('auth_token', token, {
       path: '/',
       httpOnly: true,
-      maxAge: 60 * 60 * 24 // Expira em 1 dia
+      maxAge: 60 * 60 * 24
     });
 
     return response;
 
   } catch (error) {
-    console.error('Erro na API de login:', error);
+    console.error(error);
     return NextResponse.json({ message: 'Erro interno no servidor' }, { status: 500 });
   }
 }

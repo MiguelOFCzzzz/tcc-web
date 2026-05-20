@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import styles from './dashboard.module.css'
 
 const navItems = [
@@ -21,15 +22,22 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
+  // Leitura do localStorage apenas no cliente, após montagem
+  const [email, setEmail] = useState('')
+  const [cidade, setCidade] = useState('')
+
+  useEffect(() => {
+    setEmail(localStorage.getItem('userEmail') || '')
+    setCidade(localStorage.getItem('userCidade') || 'Brasil')
+  }, [])
+
   function logout() {
     localStorage.clear()
-    document.cookie = 'usuarioLogado=; path=/; max-age=0'
+    document.cookie = 'auth_token=; path=/; max-age=0'
     router.push('/login')
   }
 
-  const email = typeof window !== 'undefined' ? localStorage.getItem('userEmail') || '' : ''
   const initials = email ? email.slice(0, 2).toUpperCase() : 'SS'
-  const cidade = typeof window !== 'undefined' ? localStorage.getItem('userCidade') || 'Brasil' : ''
 
   return (
     <aside className={styles.sidebar}>
