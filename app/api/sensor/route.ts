@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       [umidade ?? null, temperatura ?? null]
     );
 
+    console.log(`[ESP32] Dado recebido — umidade: ${umidade}, temperatura: ${temperatura}`)
     return NextResponse.json({ message: 'Dados salvos' }, { status: 201 });
   } catch (error) {
     console.error(error);

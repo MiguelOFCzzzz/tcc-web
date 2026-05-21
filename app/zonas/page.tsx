@@ -122,7 +122,7 @@ const coords = useUserCoords()
     const headers = { Authorization: `Bearer ${token}` }
     try {
       const [resS, resH] = await Promise.all([
-        fetch('http://localhost:3001/api/sensor', { headers }),
+        fetch('http://localhost:3001/api/sensor/historico', { headers }),
         fetch('http://localhost:3001/api/sensor/historico', { headers }),
       ])
       if (resS.ok) {

@@ -305,10 +305,9 @@ const coords = useUserCoords()
   const fetchAll = useCallback(async () => {
     const token = localStorage.getItem('token')
     const headers: HeadersInit = { Authorization: `Bearer ${token}` }
-
     try {
       // Sensor atual
-      const resSensor = await fetch('/api/sensor', { headers })
+      const resSensor = await fetch('http://localhost:3001/api/sensor', { headers })
       if (resSensor.ok) {
         const dataSensor = await resSensor.json()
         const received = dataSensor.data ?? dataSensor.recebido ?? dataSensor
@@ -328,7 +327,7 @@ const coords = useUserCoords()
 
     try {
       // Histórico
-      const resHist = await fetch('/api/sensor/historico', { headers })
+      const resHist = await fetch('http://localhost:3001/api/sensor/historico', { headers })
       if (resHist.ok) {
         const dataHist = await resHist.json()
         const hist: HistoricoItem[] = dataHist.historico ?? []
@@ -342,7 +341,7 @@ const coords = useUserCoords()
       // Clima
       const lat = coords?.lat ?? -21.7495
       const lon = coords?.lon ?? -50.3342
-      const resClima = await fetch(`/api/clima?lat=${lat}&lon=${lon}`, { headers })
+      const resClima = await fetch(`http://localhost:3001/api/clima?lat=${lat}&lon=${lon}`, { headers })
       if (resClima.ok) {
         const dataClima = await resClima.json()
         const atual = dataClima.atual ?? {}
