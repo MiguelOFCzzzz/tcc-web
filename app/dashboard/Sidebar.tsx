@@ -8,7 +8,8 @@ import styles from './dashboard.module.css'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
   { href: '/monitoramento', label: 'Monitoramento', icon: '📈' },
-  { href: '/soloia', label: 'Solo IA', icon: '🤖' },
+  { href: '/soloia', label: 'SoloPicture', icon: '🔬' },
+  { href: '/solochat', label: 'SoloChat', icon: '🤖' },
 ]
 
 const navBottom = [
@@ -22,7 +23,6 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Leitura do localStorage apenas no cliente, após montagem
   const [email, setEmail] = useState('')
   const [cidade, setCidade] = useState('')
 
