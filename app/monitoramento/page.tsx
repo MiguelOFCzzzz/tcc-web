@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Chart from 'chart.js/auto'
 import styles from './monitoramento.module.css'
+import { useUserCoords } from '../hooks/useUserCoords'
 
 interface SensorData {
   umidade: number | null
@@ -122,6 +123,7 @@ export default function MonitoramentoPage() {
   const [clima, setClima] = useState<ClimaDados>({ temperatura: null, vento: null, hora: null })
   const [historico, setHistorico] = useState<HistoricoItem[]>([])
   const [status, setStatus] = useState<StatusSensor>('offline')
+const coords = useUserCoords()
 
   const gridColor = 'rgba(42,61,29,0.06)'
   const tickStyle = { color: '#7a7260', font: { family: 'Poppins' as const, size: 11 } }
@@ -338,7 +340,9 @@ export default function MonitoramentoPage() {
 
     try {
       // Clima
-      const resClima = await fetch('/api/clima?lat=-21.7495&lon=-50.3342', { headers })
+      const lat = coords?.lat ?? -21.7495
+      const lon = coords?.lon ?? -50.3342
+      const resClima = await fetch(`/api/clima?lat=${lat}&lon=${lon}`, { headers })
       if (resClima.ok) {
         const dataClima = await resClima.json()
         const atual = dataClima.atual ?? {}
@@ -366,7 +370,7 @@ export default function MonitoramentoPage() {
       clearInterval(interval)
       destroyCharts()
     }
-  }, [fetchAll, destroyCharts])
+  }, [fetchAll, destroyCharts, coords])
 
   const st = statusMap[status]
   const recomendacao = getRecomendacao(sensor.umidade, sensor.temperatura ?? clima.temperatura, clima.vento)
