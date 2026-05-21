@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 interface Mensagem {
   role: 'user' | 'assistant'
   content: string
-  timestamp: Date
+  timestamp: string // ISO string para poder salvar no localStorage
 }
 
 function formatMarkdown(text: string): string {
@@ -27,43 +27,70 @@ const SUGESTOES = [
   'Quando é a melhor hora para irrigar?',
 ]
 
+const MSG_BOAS_VINDAS: Mensagem = {
+  role: 'assistant',
+  content: 'Olá! Sou o **SoloBot**, seu agrônomo virtual. Posso ajudar com diagnósticos de solo, pragas, doenças, irrigação e muito mais.\n\nComo posso ajudar sua plantação hoje?',
+  timestamp: new Date().toISOString(),
+}
+
+const STORAGE_KEY = 'solochat_mensagens'
+
 export default function SoloChatPage() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [contextoInicial, setContextoInicial] = useState('')
+  const [inicializado, setInicializado] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Carrega contexto do SoloPicture se vier de lá
+  // Inicializa: carrega histórico do localStorage ou contexto do SoloPicture
   useEffect(() => {
     const ctx = localStorage.getItem('solochat_contexto')
-    if (ctx) {
-      setContextoInicial(ctx)
-      localStorage.removeItem('solochat_contexto')
 
-      const msgBoasVindas: Mensagem = {
+    if (ctx) {
+      // Veio do SoloPicture — inicia conversa nova com o contexto
+      localStorage.removeItem('solochat_contexto')
+      setContextoInicial(ctx)
+
+      const msgContexto: Mensagem = {
         role: 'assistant',
         content: `Olá! Recebi os resultados da análise do **SoloPicture**. Identifiquei os seguintes problemas na sua plantação:\n\n${ctx.split('\n').map((l: string) => `- ${l}`).join('\n')}\n\nO que você gostaria de saber sobre o tratamento ou prevenção?`,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       }
-      setMensagens([msgBoasVindas])
+      const novas = [msgContexto]
+      setMensagens(novas)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(novas))
     } else {
-      const msgBoasVindas: Mensagem = {
-        role: 'assistant',
-        content: 'Olá! Sou o **SoloBot**, seu agrônomo virtual. Posso ajudar com diagnósticos de solo, pragas, doenças, irrigação e muito mais.\n\nComo posso ajudar sua plantação hoje?',
-        timestamp: new Date(),
+      // Tenta carregar histórico salvo
+      const salvo = localStorage.getItem(STORAGE_KEY)
+      if (salvo) {
+        try {
+          const parsed: Mensagem[] = JSON.parse(salvo)
+          if (parsed.length > 0) {
+            setMensagens(parsed)
+            setInicializado(true)
+            return
+          }
+        } catch { /* ignora */ }
       }
-      setMensagens([msgBoasVindas])
+      // Sem histórico — mensagem de boas-vindas
+      setMensagens([MSG_BOAS_VINDAS])
     }
+    setInicializado(true)
   }, [])
+
+  // Salva mensagens no localStorage sempre que mudam (após inicializado)
+  useEffect(() => {
+    if (!inicializado || mensagens.length === 0) return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mensagens))
+  }, [mensagens, inicializado])
 
   // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens, carregando])
 
-  // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
     const ta = e.target
@@ -80,8 +107,14 @@ export default function SoloChatPage() {
       textareaRef.current.style.height = 'auto'
     }
 
-    const novaMensagem: Mensagem = { role: 'user', content: msg, timestamp: new Date() }
-    setMensagens(prev => [...prev, novaMensagem])
+    const novaMensagem: Mensagem = {
+      role: 'user',
+      content: msg,
+      timestamp: new Date().toISOString(),
+    }
+
+    const mensagensAtualizadas = [...mensagens, novaMensagem]
+    setMensagens(mensagensAtualizadas)
     setCarregando(true)
 
     try {
@@ -94,34 +127,43 @@ export default function SoloChatPage() {
         }),
       })
 
-      if (!res.ok) {
-        throw new Error('Erro na API')
-      }
+      if (!res.ok) throw new Error('Erro na API')
 
       const data = await res.json()
       const resposta: Mensagem = {
         role: 'assistant',
         content: data.resposta || 'Não consegui processar sua pergunta. Tente novamente.',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       }
       setMensagens(prev => [...prev, resposta])
     } catch {
       const erro: Mensagem = {
         role: 'assistant',
         content: '⚠️ Não consegui conectar ao servidor. Verifique se o Python está rodando e tente novamente.',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       }
       setMensagens(prev => [...prev, erro])
     } finally {
       setCarregando(false)
     }
-  }, [input, carregando, contextoInicial])
+  }, [input, carregando, contextoInicial, mensagens])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       enviar()
     }
+  }
+
+  function novaConversa() {
+    const boasVindas: Mensagem = {
+      role: 'assistant',
+      content: 'Olá! Sou o **SoloBot**, seu agrônomo virtual. Como posso ajudar sua plantação hoje?',
+      timestamp: new Date().toISOString(),
+    }
+    setMensagens([boasVindas])
+    setContextoInicial('')
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([boasVindas]))
   }
 
   const temMensagensDoUsuario = mensagens.some(m => m.role === 'user')
@@ -167,15 +209,7 @@ export default function SoloChatPage() {
 
         {temMensagensDoUsuario && (
           <button
-            onClick={() => {
-              const boasVindas: Mensagem = {
-                role: 'assistant',
-                content: 'Olá! Sou o **SoloBot**, seu agrônomo virtual. Como posso ajudar sua plantação hoje?',
-                timestamp: new Date(),
-              }
-              setMensagens([boasVindas])
-              setContextoInicial('')
-            }}
+            onClick={novaConversa}
             style={{
               marginLeft: 'auto', padding: '6px 14px',
               background: 'var(--creme)', border: '1.5px solid var(--creme-mid)',
@@ -246,7 +280,6 @@ export default function SoloChatPage() {
               margin: '0 auto',
             }}
           >
-            {/* Avatar */}
             <div style={{
               width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
               background: m.role === 'user' ? 'var(--laranja)' : 'var(--verde)',
@@ -256,7 +289,6 @@ export default function SoloChatPage() {
               {m.role === 'user' ? '👤' : '🤖'}
             </div>
 
-            {/* Bolha */}
             <div style={{
               maxWidth: 'calc(100% - 44px)',
               padding: '14px 18px',
@@ -277,7 +309,7 @@ export default function SoloChatPage() {
                 fontSize: '11px', marginTop: '6px', opacity: 0.6,
                 textAlign: m.role === 'user' ? 'right' : 'left',
               }}>
-                {m.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
@@ -322,15 +354,16 @@ export default function SoloChatPage() {
         borderTop: '1px solid var(--creme-mid)',
         flexShrink: 0,
       }}>
-        <div style={{
-          maxWidth: '780px', margin: '0 auto',
-          display: 'flex', gap: '10px', alignItems: 'flex-end',
-          background: 'var(--creme)',
-          border: '1.5px solid var(--creme-mid)',
-          borderRadius: '14px',
-          padding: '10px 14px',
-          transition: 'border-color 0.2s',
-        }}
+        <div
+          style={{
+            maxWidth: '780px', margin: '0 auto',
+            display: 'flex', gap: '10px', alignItems: 'flex-end',
+            background: 'var(--creme)',
+            border: '1.5px solid var(--creme-mid)',
+            borderRadius: '14px',
+            padding: '10px 14px',
+            transition: 'border-color 0.2s',
+          }}
           onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--laranja)'}
           onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--creme-mid)'}
         >

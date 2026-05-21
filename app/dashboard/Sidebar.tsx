@@ -13,10 +13,10 @@ const navItems = [
 ]
 
 const navBottom = [
-  { href: '/dashboard/relatorios', label: 'Relatórios', icon: '📄' },
-  { href: '/dashboard/historico', label: 'Histórico', icon: '🕓' },
-  { href: '/dashboard/zonas', label: 'Zonas do Solo', icon: '🗺️' },
-  { href: '/dashboard/configuracoes', label: 'Configurações', icon: '⚙️' },
+  { href: '/relatorios', label: 'Relatórios', icon: '📄' },
+  { href: '/historico', label: 'Histórico', icon: '🕓' },
+  { href: '/zonas', label: 'Zonas', icon: '🗺️' },
+  { href: '/configuracoes', label: 'Configurações', icon: '⚙️' },
 ]
 
 export default function Sidebar() {
