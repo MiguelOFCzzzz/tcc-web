@@ -5,8 +5,12 @@ import Chart from 'chart.js/auto'
 import styles from './monitoramento.module.css'
 
 interface SensorData {
+  sensor_id: string | null
   umidade: number | null
   temperatura: number | null
+  status_solo: string | null
+  rele: boolean | null
+  modo: string | null
   created_at: string | null
 }
 
@@ -23,6 +27,8 @@ interface HistoricoItem {
 }
 
 type StatusSensor = 'seco' | 'ideal' | 'umido' | 'offline'
+
+const API_BASE = 'http://localhost:3001'
 
 function utcToBRT(utcString: string): Date {
   const d = new Date(utcString)
@@ -51,6 +57,7 @@ function getRecomendacao(umidade: number | null, temperatura: number | null, ven
       bg: 'rgba(158,158,158,0.08)',
     }
   }
+
   const temp = temperatura ?? 0
   const wind = vento ?? 0
 
@@ -63,6 +70,7 @@ function getRecomendacao(umidade: number | null, temperatura: number | null, ven
       bg: 'rgba(210,23,23,0.08)',
     }
   }
+
   if (umidade <= 30) {
     return {
       icon: '💧',
@@ -72,6 +80,7 @@ function getRecomendacao(umidade: number | null, temperatura: number | null, ven
       bg: 'rgba(227,163,48,0.08)',
     }
   }
+
   if (umidade <= 60) {
     return {
       icon: '✅',
@@ -81,6 +90,7 @@ function getRecomendacao(umidade: number | null, temperatura: number | null, ven
       bg: 'rgba(76,175,80,0.08)',
     }
   }
+
   if (wind > 5) {
     return {
       icon: '🌬️',
@@ -90,6 +100,7 @@ function getRecomendacao(umidade: number | null, temperatura: number | null, ven
       bg: 'rgba(2,119,189,0.08)',
     }
   }
+
   return {
     icon: '🚿',
     titulo: 'Reduzir irrigação',
@@ -107,19 +118,30 @@ const statusMap = {
 }
 
 export default function MonitoramentoPage() {
-  // Canvas refs
   const linhaRef = useRef<HTMLCanvasElement>(null)
   const barrasRef = useRef<HTMLCanvasElement>(null)
   const donutRef = useRef<HTMLCanvasElement>(null)
 
-  // Chart instance refs
   const chartLinhaRef = useRef<Chart | null>(null)
   const chartBarrasRef = useRef<Chart | null>(null)
   const chartDonutRef = useRef<Chart | null>(null)
 
-  // State
-  const [sensor, setSensor] = useState<SensorData>({ umidade: null, temperatura: null, created_at: null })
-  const [clima, setClima] = useState<ClimaDados>({ temperatura: null, vento: null, hora: null })
+  const [sensor, setSensor] = useState<SensorData>({
+    sensor_id: null,
+    umidade: null,
+    temperatura: null,
+    status_solo: null,
+    rele: null,
+    modo: null,
+    created_at: null,
+  })
+
+  const [clima, setClima] = useState<ClimaDados>({
+    temperatura: null,
+    vento: null,
+    hora: null,
+  })
+
   const [historico, setHistorico] = useState<HistoricoItem[]>([])
   const [status, setStatus] = useState<StatusSensor>('offline')
 
@@ -130,6 +152,7 @@ export default function MonitoramentoPage() {
     chartLinhaRef.current?.destroy()
     chartBarrasRef.current?.destroy()
     chartDonutRef.current?.destroy()
+
     chartLinhaRef.current = null
     chartBarrasRef.current = null
     chartDonutRef.current = null
@@ -138,7 +161,6 @@ export default function MonitoramentoPage() {
   const buildCharts = useCallback((hist: HistoricoItem[], umidadeAtual: number | null) => {
     destroyCharts()
 
-    // --- Gráfico de Linha: histórico de umidade ---
     if (linhaRef.current) {
       const sorted = [...hist].reverse()
       const labels = sorted.map(h => formatHHMM(h.created_at))
@@ -148,19 +170,21 @@ export default function MonitoramentoPage() {
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: 'Umidade (%)',
-            data: dataUmidade,
-            borderColor: '#0277BD',
-            backgroundColor: 'rgba(2,119,189,0.08)',
-            borderWidth: 2.5,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: '#0277BD',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            tension: 0.4,
-            fill: true,
-          }],
+          datasets: [
+            {
+              label: 'Umidade (%)',
+              data: dataUmidade,
+              borderColor: '#0277BD',
+              backgroundColor: 'rgba(2,119,189,0.08)',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#0277BD',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              tension: 0.4,
+              fill: true,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -178,7 +202,7 @@ export default function MonitoramentoPage() {
           scales: {
             y: {
               grid: { color: gridColor },
-              ticks: { ...tickStyle, callback: (v) => `${v}%` },
+              ticks: { ...tickStyle, callback: value => `${value}%` },
               border: { display: false },
               min: 0,
               max: 100,
@@ -193,7 +217,6 @@ export default function MonitoramentoPage() {
       })
     }
 
-    // --- Gráfico de Barras: faixas de umidade ---
     if (barrasRef.current) {
       const seco = hist.filter(h => h.umidade <= 30).length
       const ideal = hist.filter(h => h.umidade > 30 && h.umidade <= 60).length
@@ -203,13 +226,19 @@ export default function MonitoramentoPage() {
         type: 'bar',
         data: {
           labels: ['Seco (≤30%)', 'Ideal (31–60%)', 'Úmido (>60%)'],
-          datasets: [{
-            label: 'Leituras',
-            data: [seco, ideal, umido],
-            backgroundColor: ['rgba(210,23,23,0.85)', 'rgba(76,175,80,0.85)', 'rgba(2,119,189,0.85)'],
-            borderRadius: 8,
-            borderSkipped: false,
-          }],
+          datasets: [
+            {
+              label: 'Leituras',
+              data: [seco, ideal, umido],
+              backgroundColor: [
+                'rgba(210,23,23,0.85)',
+                'rgba(76,175,80,0.85)',
+                'rgba(2,119,189,0.85)',
+              ],
+              borderRadius: 8,
+              borderSkipped: false,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -240,9 +269,11 @@ export default function MonitoramentoPage() {
       })
     }
 
-    // --- Gráfico Donut: situação atual ---
     if (donutRef.current) {
-      let seco = 0, ideal = 0, umido = 0
+      let seco = 0
+      let ideal = 0
+      let umido = 0
+
       if (umidadeAtual !== null) {
         if (umidadeAtual <= 30) {
           seco = Math.max(0, 30 - umidadeAtual)
@@ -260,17 +291,19 @@ export default function MonitoramentoPage() {
         type: 'doughnut',
         data: {
           labels: ['Seco', 'Ideal', 'Úmido'],
-          datasets: [{
-            data: umidadeAtual !== null ? [seco, ideal, umido] : [33, 33, 34],
-            backgroundColor: [
-              'rgba(210,23,23,0.85)',
-              'rgba(76,175,80,0.85)',
-              'rgba(2,119,189,0.85)',
-            ],
-            borderWidth: 3,
-            borderColor: '#fff',
-            hoverOffset: 8,
-          }],
+          datasets: [
+            {
+              data: umidadeAtual !== null ? [seco, ideal, umido] : [33, 33, 34],
+              backgroundColor: [
+                'rgba(210,23,23,0.85)',
+                'rgba(76,175,80,0.85)',
+                'rgba(2,119,189,0.85)',
+              ],
+              borderWidth: 3,
+              borderColor: '#fff',
+              hoverOffset: 8,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -302,66 +335,102 @@ export default function MonitoramentoPage() {
 
   const fetchAll = useCallback(async () => {
     const token = localStorage.getItem('token')
-    const headers: HeadersInit = { Authorization: `Bearer ${token}` }
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
 
     try {
-      // Sensor atual
-      const resSensor = await fetch('/api/sensor', { headers })
+      const resSensor = await fetch(`${API_BASE}/api/sensor/monitoramento`, {
+        cache: 'no-store',
+      })
+
       if (resSensor.ok) {
         const dataSensor = await resSensor.json()
         const received = dataSensor.data ?? dataSensor.recebido ?? dataSensor
-        const u = received?.umidade ?? null
-        const t = received?.temperatura ?? null
-        const ca = received?.created_at ?? null
-        setSensor({ umidade: u, temperatura: t, created_at: ca })
+
+        const u = typeof received?.umidade === 'number' ? received.umidade : null
+        const t = typeof received?.temperatura === 'number' ? received.temperatura : null
+        const ca = received?.created_at ?? received?.atualizado_em ?? new Date().toISOString()
+
+        setSensor({
+          sensor_id: received?.sensor_id ?? null,
+          umidade: u,
+          temperatura: t,
+          status_solo: received?.status_solo ?? null,
+          rele: typeof received?.rele === 'boolean' ? received.rele : null,
+          modo: received?.modo ?? null,
+          created_at: ca,
+        })
+
         setStatus(getStatusFromUmidade(u))
+
+        if (u !== null) {
+          setHistorico(prev => {
+            const ultima = prev[0]
+
+            if (ultima && ultima.umidade === u && ultima.created_at === ca) {
+              return prev
+            }
+
+            const novo: HistoricoItem = {
+              umidade: u,
+              temperatura: t,
+              created_at: ca,
+            }
+
+            return [novo, ...prev].slice(0, 20)
+          })
+        }
       } else {
-        setSensor({ umidade: null, temperatura: null, created_at: null })
+        setSensor({
+          sensor_id: null,
+          umidade: null,
+          temperatura: null,
+          status_solo: null,
+          rele: null,
+          modo: null,
+          created_at: null,
+        })
         setStatus('offline')
       }
     } catch {
-      setSensor({ umidade: null, temperatura: null, created_at: null })
+      setSensor({
+        sensor_id: null,
+        umidade: null,
+        temperatura: null,
+        status_solo: null,
+        rele: null,
+        modo: null,
+        created_at: null,
+      })
       setStatus('offline')
     }
 
     try {
-      // Histórico
-      const resHist = await fetch('/api/sensor/historico', { headers })
-      if (resHist.ok) {
-        const dataHist = await resHist.json()
-        const hist: HistoricoItem[] = dataHist.historico ?? []
-        setHistorico(hist)
-      }
-    } catch {
-      // keep previous
-    }
+      const resClima = await fetch('/api/clima?lat=-21.7495&lon=-50.3342', {
+        headers,
+      })
 
-    try {
-      // Clima
-      const resClima = await fetch('/api/clima?lat=-21.7495&lon=-50.3342', { headers })
       if (resClima.ok) {
         const dataClima = await resClima.json()
         const atual = dataClima.atual ?? {}
+
         setClima({
           temperatura: atual.temperatura ?? null,
           vento: atual.vento ?? null,
           hora: atual.hora ?? null,
         })
       }
-    } catch {
-      // keep previous
-    }
+    } catch {}
   }, [])
 
-  // Rebuild charts whenever data changes
   useEffect(() => {
     buildCharts(historico, sensor.umidade)
   }, [historico, sensor.umidade, buildCharts])
 
-  // Fetch on mount + every 5s
   useEffect(() => {
     fetchAll()
+
     const interval = setInterval(fetchAll, 5000)
+
     return () => {
       clearInterval(interval)
       destroyCharts()
@@ -373,45 +442,56 @@ export default function MonitoramentoPage() {
 
   return (
     <div className={styles.page}>
-
-      {/* HEADER */}
       <div className={styles.header}>
         <div>
           <h1>Monitoramento</h1>
           <p>Análise térmica e umidade do solo em tempo real</p>
         </div>
+
         <div
           className={styles.statusBadge}
-          style={{ color: st.color, background: st.bg, border: `1px solid ${st.color}30` }}
+          style={{
+            color: st.color,
+            background: st.bg,
+            border: `1px solid ${st.color}30`,
+          }}
         >
           <span className={styles.statusDot} style={{ background: st.color }} />
           Umidade: {sensor.umidade !== null ? `${sensor.umidade}%` : '--'} — {st.label}
         </div>
       </div>
 
-      {/* KPIs */}
       <div className={styles.kpiRow}>
         <div className={styles.kpi}>
           <span className={styles.kpiIcon}>💧</span>
           <div>
-            <span className={styles.kpiVal}>{sensor.umidade !== null ? `${sensor.umidade}%` : '--'}</span>
+            <span className={styles.kpiVal}>
+              {sensor.umidade !== null ? `${sensor.umidade}%` : '--'}
+            </span>
             <span className={styles.kpiLabel}>Umidade do solo</span>
           </div>
         </div>
 
         <div className={styles.kpi}>
-          <span className={styles.kpiIcon}>🌡️</span>
+          <span className={styles.kpiIcon}>🌱</span>
           <div>
-            <span className={styles.kpiVal}>{sensor.temperatura !== null ? `${sensor.temperatura}°C` : '--'}</span>
-            <span className={styles.kpiLabel}>Temp. do sensor</span>
+            <span className={styles.kpiVal}>
+              {sensor.status_solo ?? '--'}
+            </span>
+            <span className={styles.kpiLabel}>Status do solo</span>
           </div>
         </div>
 
         <div className={styles.kpi}>
-          <span className={styles.kpiIcon}>☁️</span>
+          <span className={styles.kpiIcon}>⚙️</span>
           <div>
-            <span className={styles.kpiVal}>{clima.temperatura !== null ? `${clima.temperatura}°C` : '--'}</span>
-            <span className={styles.kpiLabel}>Temp. do clima</span>
+            <span
+              className={styles.kpiVal}
+              style={{ color: sensor.rele ? '#4CAF50' : '#9e9e9e' }}
+            >
+              {sensor.rele === null ? '--' : sensor.rele ? 'Ligado' : 'Desligado'}
+            </span>
+            <span className={styles.kpiLabel}>Relé / Irrigação</span>
           </div>
         </div>
 
@@ -424,15 +504,14 @@ export default function MonitoramentoPage() {
             >
               {sensor.umidade !== null ? 'Online' : 'Aguardando'}
             </span>
-            <span className={styles.kpiLabel}>Sensor ESP32</span>
+            <span className={styles.kpiLabel}>
+              {sensor.modo ? `Modo ${sensor.modo}` : 'Sensor ESP32'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* CHARTS GRID */}
       <div className={styles.grid}>
-
-        {/* Linha — histórico umidade */}
         <div className={`${styles.card} ${styles.cardWide}`}>
           <div className={styles.cardHead}>
             <h3>Histórico de Umidade</h3>
@@ -443,7 +522,6 @@ export default function MonitoramentoPage() {
           <canvas ref={linhaRef} />
         </div>
 
-        {/* Barras — faixas */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <h3>Faixas de Umidade</h3>
@@ -452,7 +530,6 @@ export default function MonitoramentoPage() {
           <canvas ref={barrasRef} />
         </div>
 
-        {/* Donut — situação atual */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <h3>Situação Atual</h3>
@@ -461,82 +538,108 @@ export default function MonitoramentoPage() {
           <canvas ref={donutRef} />
         </div>
 
-        {/* Recomendação de irrigação — CSS puro */}
         <div className={`${styles.card} ${styles.cardWide}`}>
           <div className={styles.cardHead}>
             <h3>Recomendação de Irrigação</h3>
             <span className={styles.cardTag}>IA Solo</span>
           </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '24px',
-            padding: '16px',
-            borderRadius: '12px',
-            background: recomendacao.bg,
-            border: `1.5px solid ${recomendacao.cor}25`,
-            marginTop: '4px',
-          }}>
-            {/* Ícone grande */}
-            <div style={{
-              fontSize: '52px',
-              lineHeight: 1,
-              flexShrink: 0,
-              width: '72px',
-              height: '72px',
+          <div
+            style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              background: '#fff',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(42,61,29,0.1)',
-            }}>
+              gap: '24px',
+              padding: '16px',
+              borderRadius: '12px',
+              background: recomendacao.bg,
+              border: `1.5px solid ${recomendacao.cor}25`,
+              marginTop: '4px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '52px',
+                lineHeight: 1,
+                flexShrink: 0,
+                width: '72px',
+                height: '72px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#fff',
+                borderRadius: '16px',
+                boxShadow: '0 2px 8px rgba(42,61,29,0.1)',
+              }}
+            >
               {recomendacao.icon}
             </div>
 
-            {/* Texto */}
             <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                color: recomendacao.cor,
-                marginBottom: '6px',
-                letterSpacing: '-0.3px',
-              }}>
+              <div
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: recomendacao.cor,
+                  marginBottom: '6px',
+                  letterSpacing: '-0.3px',
+                }}
+              >
                 {recomendacao.titulo}
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
+
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.5,
+                  marginBottom: '12px',
+                }}
+              >
                 {recomendacao.descricao}
               </div>
 
-              {/* Métricas usadas */}
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {[
-                  { label: 'Umidade', value: sensor.umidade !== null ? `${sensor.umidade}%` : '--', icon: '💧' },
                   {
-                    label: 'Temperatura',
-                    value: (sensor.temperatura ?? clima.temperatura) !== null
-                      ? `${sensor.temperatura ?? clima.temperatura}°C`
-                      : '--',
-                    icon: '🌡️'
+                    label: 'Umidade',
+                    value: sensor.umidade !== null ? `${sensor.umidade}%` : '--',
+                    icon: '💧',
                   },
-                  { label: 'Vento', value: clima.vento !== null ? `${clima.vento} m/s` : '--', icon: '💨' },
+                  {
+                    label: 'Clima',
+                    value: clima.temperatura !== null ? `${clima.temperatura}°C` : '--',
+                    icon: '🌡️',
+                  },
+                  {
+                    label: 'Vento',
+                    value: clima.vento !== null ? `${clima.vento} m/s` : '--',
+                    icon: '💨',
+                  },
+                  {
+                    label: 'Atualizado',
+                    value: sensor.created_at ? formatHHMM(sensor.created_at) : '--',
+                    icon: '🕒',
+                  },
                 ].map(m => (
-                  <div key={m.label} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '4px 12px',
-                    background: '#fff',
-                    borderRadius: '100px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--text-main)',
-                    boxShadow: '0 1px 4px rgba(42,61,29,0.08)',
-                  }}>
+                  <div
+                    key={m.label}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 12px',
+                      background: '#fff',
+                      borderRadius: '100px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--text-main)',
+                      boxShadow: '0 1px 4px rgba(42,61,29,0.08)',
+                    }}
+                  >
                     <span>{m.icon}</span>
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{m.label}:</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                      {m.label}:
+                    </span>
                     <span>{m.value}</span>
                   </div>
                 ))}
@@ -544,7 +647,6 @@ export default function MonitoramentoPage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )

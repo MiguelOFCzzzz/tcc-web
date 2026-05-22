@@ -6,10 +6,22 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
 
-    const res = await fetch(`${PYTHON_API}/analisar`, {
-      method: 'POST',
-      body: formData,
-    })
+    const email = formData.get('email')
+
+    if (!email) {
+      return NextResponse.json(
+        { message: 'Email é obrigatório para análise.' },
+        { status: 400 }
+      )
+    }
+
+    const res = await fetch(
+      `${PYTHON_API}/analisar?email=${encodeURIComponent(String(email))}`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    )
 
     if (!res.ok) {
       const text = await res.text()
@@ -20,13 +32,17 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json()
-    return NextResponse.json(data, { status: 200 })
 
+    return NextResponse.json(data, { status: 200 })
   } catch (error) {
     console.error('[/api/analise] Erro ao conectar com Python:', error)
+
     return NextResponse.json(
-      { message: 'Não foi possível conectar ao servidor Python. Verifique se está rodando na porta 8000.' },
+      {
+        message:
+          'Não foi possível conectar ao servidor Python. Verifique se está rodando na porta 8000.',
+      },
       { status: 503 }
     )
   }
-}
+} 
