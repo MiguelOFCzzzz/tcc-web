@@ -41,6 +41,9 @@ export default function LoginPage() {
       localStorage.setItem('userEmail', email)
       localStorage.setItem('token', data.token)
       localStorage.setItem('userCidade', data.user?.cidade || '')
+      localStorage.setItem('userUF', data.user?.uf || '')
+      // Dispara o evento manualmente para o hook detectar na mesma aba
+      window.dispatchEvent(new Event('storage'))
       router.push('/dashboard')
     } catch {
       setError('Erro de conexão. Verifique se o servidor está rodando.')

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Chart from 'chart.js/auto'
 import styles from './monitoramento.module.css'
+import { useUserCoords } from '../hooks/useUserCoords'
 
 interface SensorData {
   sensor_id: string | null
@@ -144,6 +145,7 @@ export default function MonitoramentoPage() {
 
   const [historico, setHistorico] = useState<HistoricoItem[]>([])
   const [status, setStatus] = useState<StatusSensor>('offline')
+const coords = useUserCoords()
 
   const gridColor = 'rgba(42,61,29,0.06)'
   const tickStyle = { color: '#7a7260', font: { family: 'Poppins' as const, size: 11 } }
@@ -335,13 +337,11 @@ export default function MonitoramentoPage() {
 
   const fetchAll = useCallback(async () => {
     const token = localStorage.getItem('token')
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+    const headers: HeadersInit = { Authorization: `Bearer ${token}` }
 
     try {
-      const resSensor = await fetch(`${API_BASE}/api/sensor/monitoramento`, {
-        cache: 'no-store',
-      })
-
+      // Sensor atual
+      const resSensor = await fetch('/api/sensor', { headers })
       if (resSensor.ok) {
         const dataSensor = await resSensor.json()
         const received = dataSensor.data ?? dataSensor.recebido ?? dataSensor
@@ -405,10 +405,20 @@ export default function MonitoramentoPage() {
     }
 
     try {
-      const resClima = await fetch('/api/clima?lat=-21.7495&lon=-50.3342', {
-        headers,
-      })
+      // Histórico
+      const resHist = await fetch('/api/sensor/historico', { headers })
+      if (resHist.ok) {
+        const dataHist = await resHist.json()
+        const hist: HistoricoItem[] = dataHist.historico ?? []
+        setHistorico(hist)
+      }
+    } catch {
+      // keep previous
+    }
 
+    try {
+      // Clima
+      const resClima = await fetch('/api/clima?lat=-21.7495&lon=-50.3342', { headers })
       if (resClima.ok) {
         const dataClima = await resClima.json()
         const atual = dataClima.atual ?? {}
@@ -435,7 +445,7 @@ export default function MonitoramentoPage() {
       clearInterval(interval)
       destroyCharts()
     }
-  }, [fetchAll, destroyCharts])
+  }, [fetchAll, destroyCharts, coords])
 
   const st = statusMap[status]
   const recomendacao = getRecomendacao(sensor.umidade, sensor.temperatura ?? clima.temperatura, clima.vento)

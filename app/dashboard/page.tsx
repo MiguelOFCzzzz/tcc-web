@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useUserCoords } from '../hooks/useUserCoords'
 import styles from './dashboard.module.css'
 
 const API = 'http://localhost:3001'
-const LAT = -21.7495
-const LON = -50.3342
 
 interface SensorData {
   sensor_id: string | null
@@ -29,6 +28,7 @@ export default function DashboardPage() {
   const [ultimaLeitura, setUltimaLeitura] = useState<string>('--')
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
+  const coords = useUserCoords()
 
   const getStatus = (umidade: number | null) => {
     if (umidade === null) {
@@ -78,11 +78,17 @@ export default function DashboardPage() {
 
   const fetchDados = useCallback(async () => {
     const token = localStorage.getItem('token')
+    if (!token) return
 
     try {
-      const sensorRes = await fetch(`${API}/api/sensor/monitoramento`, {
-        cache: 'no-store',
-      })
+      const [sensorRes, climaRes] = await Promise.all([
+        fetch(`${API}/api/sensor`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API}/api/clima?lat=${LAT}&lon=${LON}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
 
       if (sensorRes.ok) {
         const sensorData = await sensorRes.json()
@@ -136,14 +142,12 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [coords])
 
   useEffect(() => {
     setEmail(localStorage.getItem('userEmail') || '')
     fetchDados()
-
     const interval = setInterval(fetchDados, 5000)
-
     return () => clearInterval(interval)
   }, [fetchDados])
 
@@ -312,7 +316,7 @@ export default function DashboardPage() {
             {clima && <span className={styles.cardUnit}>°C</span>}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-            Open-Meteo • Pompeia/SP
+          Open-Meteo • {coords?.cidade || '...'}
           </div>
         </div>
 
@@ -470,7 +474,7 @@ export default function DashboardPage() {
                 }}
               >
                 <span style={{ color: 'var(--text-muted)' }}>Localização</span>
-                <strong>Pompeia/SP</strong>
+                <strong>{coords?.cidade || '...'}</strong>
               </div>
             </div>
           )}

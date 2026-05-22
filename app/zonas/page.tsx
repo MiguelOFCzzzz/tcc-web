@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useUserCoords } from '../hooks/useUserCoords'
 
 interface Leitura {
   id: number
@@ -113,6 +114,7 @@ export default function ZonasPage() {
   const [historico, setHistorico] = useState<Leitura[]>([])
   const [loading, setLoading] = useState(true)
   const [zonaAtiva, setZonaAtiva] = useState<string | null>(null)
+const coords = useUserCoords()
 
   const fetchDados = useCallback(async () => {
     const token = localStorage.getItem('token')
@@ -120,7 +122,7 @@ export default function ZonasPage() {
     const headers = { Authorization: `Bearer ${token}` }
     try {
       const [resS, resH] = await Promise.all([
-        fetch('http://localhost:3001/api/sensor', { headers }),
+        fetch('http://localhost:3001/api/sensor/historico', { headers }),
         fetch('http://localhost:3001/api/sensor/historico', { headers }),
       ])
       if (resS.ok) {
