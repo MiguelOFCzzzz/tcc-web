@@ -93,9 +93,14 @@ export default function SoloPicturePage() {
 
     try {
       const form = new FormData()
-      form.append('file', arquivo)
+form.append('file', arquivo)
+form.append('email', userEmail)
 
-      const res = await fetch('/api/analise', { method: 'POST', body: form })
+const res = await fetch('/api/analise', {
+  method: 'POST',
+  body: form,
+})
+      
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -105,6 +110,23 @@ export default function SoloPicturePage() {
 
       const data: ResultadoAnalise = await res.json()
       setResultado(data)
+
+      const token = localStorage.getItem('token')
+
+if (token) {
+  await fetch('http://localhost:3001/api/analises', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      total_deteccoes: data.total,
+      resultado_json: data.resultados,
+      imagem_base64: data.imagem_processada,
+    }),
+  })
+}
 
       // Salva no histórico
       const novoItem: HistoricoItem = {
