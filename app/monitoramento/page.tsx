@@ -354,7 +354,7 @@ const coords = useUserCoords()
     } catch {
       // keep previous
     }
-  }, [])
+  }, [coords])
 
   // Rebuild charts whenever data changes
   useEffect(() => {
@@ -369,7 +369,7 @@ const coords = useUserCoords()
       clearInterval(interval)
       destroyCharts()
     }
-  }, [fetchAll, destroyCharts, coords])
+  }, [fetchAll, destroyCharts])
 
   const st = statusMap[status]
   const recomendacao = getRecomendacao(sensor.umidade, sensor.temperatura ?? clima.temperatura, clima.vento)
