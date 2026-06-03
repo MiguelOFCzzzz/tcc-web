@@ -153,7 +153,10 @@ if (token) {
 
     if (!alvo || !userEmail) return
     setEnviandoEmail(true)
-
+if (!alvo || !userEmail) {
+  alert('Email não encontrado: ' + userEmail)
+  return
+}
     try {
       const res = await fetch('/api/relatorio', {
         method: 'POST',
