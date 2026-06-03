@@ -85,7 +85,7 @@ export default function DashboardPage() {
         fetch(`${API}/api/sensor`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${API}/api/clima?lat=${LAT}&lon=${LON}`, {
+       fetch(`${API}/api/clima?lat=${coords?.lat}&lon=${coords?.lon}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ])
@@ -123,7 +123,7 @@ export default function DashboardPage() {
       }
 
       if (token) {
-        const climaRes = await fetch(`${API}/api/clima?lat=${LAT}&lon=${LON}`, {
+       fetch(`${API}/api/clima?lat=${coords?.lat}&lon=${coords?.lon}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -175,11 +175,11 @@ export default function DashboardPage() {
             gap: 8,
             padding: '8px 16px',
             borderRadius: 100,
-            background: sensor ? 'rgba(76,175,80,0.1)' : 'rgba(158,158,158,0.1)',
-            border: `1px solid ${sensor ? '#4CAF5040' : '#9e9e9e40'}`,
+           background: sensor && sensor.umidade !== null ? 'rgba(76,175,80,0.1)' : 'rgba(158,158,158,0.1)',
+          border: `1px solid ${sensor && sensor.umidade !== null ? '#4CAF5040' : '#9e9e9e40'}`,
             fontSize: 13,
             fontWeight: 500,
-            color: sensor ? '#4CAF50' : '#9e9e9e',
+           color: sensor && sensor.umidade !== null ? '#4CAF50' : '#9e9e9e',
           }}
         >
           <span
@@ -187,11 +187,11 @@ export default function DashboardPage() {
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: sensor ? '#4CAF50' : '#9e9e9e',
-              animation: sensor ? 'pulse 2s infinite' : 'none',
+            background: sensor && sensor.umidade !== null ? '#4CAF50' : '#9e9e9e',
+            animation: sensor && sensor.umidade !== null ? 'pulse 2s infinite' : 'none',
             }}
           />
-          {sensor ? 'Sensor Online' : 'Aguardando Sensor'}
+        {  sensor && sensor.umidade !== null ? 'Sensor Online' : 'Aguardando Sensor'}
         </div>
       </div>
 
@@ -352,10 +352,10 @@ export default function DashboardPage() {
               className={styles.cardValue}
               style={{
                 fontSize: 18,
-                color: sensor ? '#4CAF50' : '#9e9e9e',
+               color: sensor && sensor.umidade !== null ? '#4CAF50' : '#9e9e9e',
               }}
             >
-              {sensor ? 'Online' : 'Offline'}
+             {sensor && sensor.umidade !== null ? 'Online' : 'Offline'}
             </span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
@@ -460,12 +460,7 @@ export default function DashboardPage() {
                   fontSize: 14,
                 }}
               >
-                <span style={{ color: 'var(--text-muted)' }}>
-                  Última atualização
-                </span>
-                <strong>{formatarHora(clima.hora)}</strong>
               </div>
-
               <div
                 style={{
                   display: 'flex',
